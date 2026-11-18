@@ -4,8 +4,8 @@ import numpy as np
 
 class CustomerFeatureSelection:
     """
-    Implement feature selection and
-    preprocessing analysis to prepare
+    Implements feature selection and
+    attribute type analysis to prepare
     customer data for data mining.
     """
 
@@ -14,22 +14,29 @@ class CustomerFeatureSelection:
         Load the dataset from
         AWCustomers.csv.
         """
-
         # Load the dataset
-        pass
+        self.df = pd.read_csv("AWCustomers.csv")
+        self.selected_df = None
 
     def clean_dataset(self):
         """
         Clean the dataset by:
 
-        - Removing duplicate rows.
+        - Removing duplicate rows
         - Filling missing numeric
-          values using the median.
+          values using the median
         - Filling missing categorical
-          values using the mode.
+          values using the mode
         """
+        self.df = self.df.drop_duplicates()
 
-        pass
+        for col in self.df.columns:
+            if pd.api.types.is_numeric_dtype(self.df[col]):
+                self.df[col] = self.df[col].fillna(self.df[col].median())
+            else:
+                mode_val = self.df[col].mode()
+                if not mode_val.empty:
+                    self.df[col] = self.df[col].fillna(mode_val[0])
 
     def analyze_attributes(self):
         """
@@ -41,23 +48,39 @@ class CustomerFeatureSelection:
         - duplicate_rows
         - data_types
         """
-
-        pass
+        return {
+            "total_records": len(self.df),
+            "total_attributes": len(self.df.columns),
+            "missing_values": self.df.isnull().sum().to_dict(),
+            "duplicate_rows": int(self.df.duplicated().sum()),
+            "data_types": self.df.dtypes.astype(str).to_dict()
+        }
 
     def select_features(self):
         """
         Select the required attributes
         and store the selected dataset.
         """
-
-        pass
+        selected_columns = [
+            "BirthDate",
+            "Education",
+            "Occupation",
+            "Gender",
+            "MaritalStatus",
+            "HomeOwnerFlag",
+            "NumberCarsOwned",
+            "NumberChildrenAtHome",
+            "TotalChildren",
+            "YearlyIncome",
+            "CountryRegionName"
+        ]
+        self.selected_df = self.df[selected_columns].copy()
 
     def get_selected_dataset(self):
         """
         Return the selected dataset.
         """
-
-        pass
+        return self.selected_df
 
     def analyze_attribute_types(self):
         """
@@ -66,7 +89,6 @@ class CustomerFeatureSelection:
 
         Do not modify this method.
         """
-
         return {
             "BirthDate": {
                 "value_type": "Discrete",
@@ -121,67 +143,36 @@ class CustomerFeatureSelection:
 
         Do not modify this method.
         """
-
         return {
-            "BirthDate": "date",
-            "Education": "ordinal",
-            "Occupation": "onehot",
-            "Gender": "label",
-            "MaritalStatus": "label",
-            "HomeOwnerFlag": "none",
-            "NumberCarsOwned": "standardize",
-            "NumberChildrenAtHome": "standardize",
-            "TotalChildren": "standardize",
-            "YearlyIncome": "normalize",
-            "CountryRegionName": "onehot"
+            "BirthDate": "Date",
+            "Education": "Ordinal",
+            "Occupation": "OneHot",
+            "Gender": "Label",
+            "MaritalStatus": "Label",
+            "HomeOwnerFlag": "None",
+            "NumberCarsOwned": "Standardize",
+            "NumberChildrenAtHome": "Standardize",
+            "TotalChildren": "Standardize",
+            "YearlyIncome": "Normalize",
+            "CountryRegionName": "OneHot"
         }
 
     def get_dataset(self):
         """
         Return the cleaned dataset.
         """
-
-        pass
+        return self.df
 
 
 if __name__ == "__main__":
-
-    analyzer = (
-        CustomerFeatureSelection()
-    )
-
+    analyzer = CustomerFeatureSelection()
     analyzer.clean_dataset()
-
-    print(
-        "Attribute Summary:"
-    )
-
-    print(
-        analyzer.analyze_attributes()
-    )
-
+    print("Attribute Summary:")
+    print(analyzer.analyze_attributes())
     analyzer.select_features()
-
-    print(
-        "\nSelected Dataset:"
-    )
-
-    print(
-        analyzer.get_selected_dataset()
-    )
-
-    print(
-        "\nAttribute Types:"
-    )
-
-    print(
-        analyzer.analyze_attribute_types()
-    )
-
-    print(
-        "\nPreprocessing Plan:"
-    )
-
-    print(
-        analyzer.generate_preprocessing_plan()
-    )
+    print("\nSelected Dataset:")
+    print(analyzer.get_selected_dataset())
+    print("\nAttribute Types:")
+    print(analyzer.analyze_attribute_types())
+    print("\nPreprocessing Plan:")
+    print(analyzer.generate_preprocessing_plan())

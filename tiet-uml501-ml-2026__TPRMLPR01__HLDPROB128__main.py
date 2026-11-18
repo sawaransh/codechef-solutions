@@ -9,14 +9,14 @@ class BuildingDataPreparation:
         """
         Initialize data preparation pipeline.
 
-        Tasks:
+        You must:
         - Load CSV dataset into a DataFrame
         """
         print("Loading dataset... please wait")
 
         # TODO: Load CSV dataset
         self.df = pd.read_csv(filepath)
-        print(f"Dataset loaded with {len(self.df)} records.")
+        print(f"Dataset loaded with {len(self.df)} records")
 
     def clean_columns(self):
         """
@@ -31,13 +31,18 @@ class BuildingDataPreparation:
 
         # TODO: Clean Height_m and Year columns
         self.df["Height_m"] = pd.to_numeric(
-            self.df["Height_m"].astype(str).str.extract(r"(-?\d+(?:\.\d+)?)", expand=False),
-            errors="coerce",
+            self.df["Height_m"].astype(str).str.extract(r"(\d+\.?\d*)")[0],
+            errors="coerce"
         )
         self.df["Year"] = pd.to_numeric(
-            self.df["Year"].astype(str).str.extract(r"(-?\d+(?:\.\d+)?)", expand=False),
-            errors="coerce",
+            self.df["Year"].astype(str).str.extract(r"(\d+\.?\d*)")[0],
+            errors="coerce"
         )
+        if "Floors" in self.df.columns:
+            self.df["Floors"] = pd.to_numeric(
+                self.df["Floors"].astype(str).str.extract(r"(\d+\.?\d*)")[0],
+                errors="coerce"
+            )
 
     def handle_missing_values(self):
         """
@@ -46,12 +51,9 @@ class BuildingDataPreparation:
         print("Handling missing values...")
 
         # TODO: Fill missing numeric values
-        numeric_cols = self.df.select_dtypes(include=[np.number]).columns
-        self.df[numeric_cols] = self.df[numeric_cols].fillna(self.df[numeric_cols].mean())
-
-        for col in ["City", "Country"]:
-            if col in self.df.columns and self.df[col].isna().any():
-                self.df[col] = self.df[col].fillna(self.df[col].mode()[0])
+        num_cols = self.df.select_dtypes(include=[np.number]).columns
+        for col in num_cols:
+            self.df[col] = self.df[col].fillna(self.df[col].median())
 
     def encode_categorical_features(self):
         """
@@ -63,8 +65,8 @@ class BuildingDataPreparation:
 
         # TODO: Apply label encoding
         for col in ["City", "Country"]:
-            le = LabelEncoder()
-            self.df[col] = le.fit_transform(self.df[col])
+            encoder = LabelEncoder()
+            self.df[col] = encoder.fit_transform(self.df[col].astype(str))
 
     def scale_features(self):
         """
@@ -78,9 +80,9 @@ class BuildingDataPreparation:
         print("Scaling numeric features... please wait")
 
         # TODO: Apply scaling
-        cols_to_scale = ["Height_m", "Floors", "Year"]
+        cols = ["Height_m", "Floors", "Year"]
         scaler = MinMaxScaler()
-        self.df[cols_to_scale] = scaler.fit_transform(self.df[cols_to_scale])
+        self.df[cols] = scaler.fit_transform(self.df[cols])
 
 
 def run_pipeline(filepath):
@@ -104,5 +106,5 @@ if __name__ == "__main__":
 
     df = run_pipeline(filepath)
 
-    print("\n=== Prepared Dataset ===")
+    print("\n--- Prepared Dataset ---")
     print(df.head())

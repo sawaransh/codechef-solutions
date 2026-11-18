@@ -19,9 +19,7 @@ class CustomerDataTransformation:
         Load the dataset from
         AWCustomers.csv.
         """
-
-        # Load the dataset
-        pass
+        self.df = pd.read_csv("AWCustomers.csv")
 
     def handle_null_values(self):
         """
@@ -33,8 +31,15 @@ class CustomerDataTransformation:
         - Filling missing categorical
           values using the mode.
         """
+        self.df = self.df.drop_duplicates()
 
-        pass
+        for col in self.df.columns:
+            if pd.api.types.is_numeric_dtype(self.df[col]):
+                self.df[col] = self.df[col].fillna(self.df[col].median())
+            else:
+                mode_val = self.df[col].mode()
+                if not mode_val.empty:
+                    self.df[col] = self.df[col].fillna(mode_val[0])
 
     def normalize_data(self):
         """
@@ -46,8 +51,8 @@ class CustomerDataTransformation:
 
         - NormalizedIncome
         """
-
-        pass
+        scaler = MinMaxScaler()
+        self.df["NormalizedIncome"] = scaler.fit_transform(self.df[["YearlyIncome"]])
 
     def discretize_data(self):
         """
@@ -60,8 +65,7 @@ class CustomerDataTransformation:
 
         - IncomeBin
         """
-
-        pass
+        self.df["IncomeBin"] = pd.cut(self.df["YearlyIncome"], bins=4)
 
     def standardize_data(self):
         """
@@ -72,8 +76,9 @@ class CustomerDataTransformation:
         - NumberChildrenAtHome
         - TotalChildren
         """
-
-        pass
+        cols = ["NumberCarsOwned", "NumberChildrenAtHome", "TotalChildren"]
+        scaler = StandardScaler()
+        self.df[cols] = scaler.fit_transform(self.df[cols])
 
     def one_hot_encode(self):
         """
@@ -82,16 +87,14 @@ class CustomerDataTransformation:
         - Occupation
         - CountryRegionName
         """
-
-        pass
+        self.df = pd.get_dummies(self.df, columns=["Occupation", "CountryRegionName"])
 
     def get_dataset(self):
         """
         Return the transformed
         dataset.
         """
-
-        pass
+        return self.df
 
 
 if __name__ == "__main__":

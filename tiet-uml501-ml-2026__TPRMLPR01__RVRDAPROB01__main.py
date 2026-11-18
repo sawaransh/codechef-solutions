@@ -15,8 +15,10 @@ class EmployeePerformanceEDA:
         Load the dataset from
         employee_performance_eda.csv.
         """
-        # TODO: Implement constructor
-        ______
+        self.df = pd.read_csv("employee_performance_eda.csv")
+        self.statistics = None
+        self.correlation_matrix = None
+        self.generated_charts = []
 
     def generate_descriptive_statistics(self):
         """
@@ -26,8 +28,8 @@ class EmployeePerformanceEDA:
         Store the generated statistics
         for later retrieval.
         """
-        # TODO: Implement logic
-        return ______
+        self.statistics = self.df.describe()
+        return self.statistics
 
     def calculate_correlation_matrix(self):
         """
@@ -37,8 +39,8 @@ class EmployeePerformanceEDA:
         Store the generated correlation
         matrix for later retrieval.
         """
-        # TODO: Implement logic
-        return ______
+        self.correlation_matrix = self.df.corr(numeric_only=True)
+        return self.correlation_matrix
 
     def create_salary_histogram(self):
         """
@@ -51,8 +53,16 @@ class EmployeePerformanceEDA:
         Store the generated file name
         for later retrieval.
         """
-        # TODO: Implement logic
-        ______
+        filename = "salary_histogram.png"
+        plt.figure()
+        plt.hist(self.df["Salary"])
+        plt.title("Salary Distribution")
+        plt.xlabel("Salary")
+        plt.ylabel("Frequency")
+        plt.savefig(filename)
+        plt.close()
+        self.generated_charts.append(filename)
+        return filename
 
     def create_experience_vs_salary_scatter_plot(self):
         """
@@ -68,8 +78,16 @@ class EmployeePerformanceEDA:
         Store the generated file name
         for later retrieval.
         """
-        # TODO: Implement logic
-        ______
+        filename = "experience_salary_scatter.png"
+        plt.figure()
+        plt.scatter(self.df["ExperienceYears"], self.df["Salary"])
+        plt.title("Experience vs Salary")
+        plt.xlabel("ExperienceYears")
+        plt.ylabel("Salary")
+        plt.savefig(filename)
+        plt.close()
+        self.generated_charts.append(filename)
+        return filename
 
     def create_department_salary_box_plot(self):
         """
@@ -83,72 +101,55 @@ class EmployeePerformanceEDA:
         Store the generated file name
         for later retrieval.
         """
-        # TODO: Implement logic
-        ______
+        filename = "department_salary_boxplot.png"
+        plt.figure()
+        sns.boxplot(data=self.df, x="Department", y="Salary")
+        plt.title("Salary Distribution by Department")
+        plt.savefig(filename)
+        plt.close()
+        self.generated_charts.append(filename)
+        return filename
 
     def get_dataset(self):
         """
         Return the loaded dataset.
         """
-        # TODO: Implement logic
-        return ______
+        return self.df
 
     def generate_analysis_summary(self):
         """
         Generate a summary containing:
 
-        - Total records
-        - Total departments
-        - Average salary
-        - Average performance score
+        - total records
+        - total departments
+        - average salary
+        - average performance score
         """
-        # TODO: Implement logic
-        return ______
+        return {
+            "total_records": len(self.df),
+            "total_departments": int(self.df["Department"].nunique()),
+            "average_salary": float(self.df["Salary"].mean()),
+            "average_performance_score": float(self.df["PerformanceScore"].mean())
+        }
 
 
 if __name__ == "__main__":
 
-    analysis = (
-        EmployeePerformanceEDA()
-    )
+    analysis = EmployeePerformanceEDA()
 
-    statistics = (
-        analysis
-        .generate_descriptive_statistics()
-    )   
+    statistics = analysis.generate_descriptive_statistics()
 
-    correlation_matrix = (
-        analysis
-        .calculate_correlation_matrix()
-    )
+    correlation_matrix = analysis.calculate_correlation_matrix()
 
     analysis.create_salary_histogram()
-
     analysis.create_experience_vs_salary_scatter_plot()
-
     analysis.create_department_salary_box_plot()
 
-    print(
-        "Analysis Summary:"
-    )
+    print("Analysis Summary:")
+    print(analysis.generate_analysis_summary())
 
-    print(
-        analysis
-        .generate_analysis_summary()
-    )
+    print("\nDescriptive Statistics:")
+    print(statistics)
 
-    print(
-        "\nDescriptive Statistics:"
-    )
-
-    print(
-        statistics
-    )
-
-    print(
-        "\nCorrelation Matrix:"
-    )
-
-    print(
-        correlation_matrix
-    )
+    print("\nCorrelation Matrix:")
+    print(correlation_matrix)

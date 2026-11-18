@@ -12,8 +12,7 @@ class EmployeeSalaryTransformationReport:
         Load the dataset and store it
         for further processing.
         """
-        # TODO: Implement constructor
-        ______
+        self.df = pd.read_csv("employee_salary_data.csv")
 
     def apply_salary_normalization(self):
         """
@@ -21,31 +20,34 @@ class EmployeeSalaryTransformationReport:
         to the Salary column and create
         the NormalizedSalary column.
         """
-        # TODO: Implement logic
-        ______
+        min_sal = self.df["Salary"].min()
+        max_sal = self.df["Salary"].max()
+        self.df["NormalizedSalary"] = (self.df["Salary"] - min_sal) / (max_sal - min_sal)
 
     def create_performance_efficiency(self):
         """
         Create the PerformanceEfficiency
         column using the required formula.
         """
-        # TODO: Implement logic
-        ______
+        score_col = next(c for c in self.df.columns if "performance" in c.lower() and "score" in c.lower())
+        self.df["PerformanceEfficiency"] = self.df[score_col] / self.df["Salary"]
 
     def get_transformed_data(self):
         """
         Return the transformed dataset.
         """
-        # TODO: Implement logic
-        return ______
+        return self.df
 
     def generate_transformation_summary(self):
         """
         Generate a summary containing
         transformation details.
         """
-        # TODO: Implement logic
-        return ______
+        return {
+            "total_employees": len(self.df),
+            "min_normalized_salary": float(self.df["NormalizedSalary"].min()),
+            "max_normalized_salary": float(self.df["NormalizedSalary"].max())
+        }
 
 
 if __name__ == "__main__":
