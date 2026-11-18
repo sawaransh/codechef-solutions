@@ -132,3 +132,16 @@ tiet-uml501-ml-2026__SDMELR21__YTQAI152__model 2.py
 tiet-uml501-ml-2026__SDMELR18__YTQAI141__main.py
 tiet-uml501-ml-2026__TPRMLPR01__HLDPROB126__main.py
 tiet-uml501-ml-2026__TPRMLPR01__HLDPROB128__main.py
+tiet-uml501-ml-2026__BEHWIE__RJRUEW01__main.py
+tiet-uml501-ml-2026__BEHWIE__RJRUEW02__main.py
+tiet-uml501-ml-2026__GHJTYIY__UGTRVE01__main.py
+tiet-uml501-ml-2026__KJSHDBC01__JEWRKJ04__main.py
+tiet-uml501-ml-2026__KJSHDBC01__JEWRKJ08__main.py
+tiet-uml501-ml-2026__KJSHDBC01__JEWRKJ12__main.py
+tiet-uml501-ml-2026__KJSHDBC02__JEWRKJ17__main.py
+tiet-uml501-ml-2026__KJSHDBC02__JEWRKJ21__main.py
+tiet-uml501-ml-2026__KJSHDBC02__JEWRKJ25__main.py
+tiet-uml501-ml-2026__KJSHDBC02__JEWRKJ30__main.py
+tiet-uml501-ml-2026__KJSHDBC03__JEWRKJ34__main.py
+tiet-uml501-ml-2026__KJSHDBC03__JEWRKJ38__main.py
+tiet-uml501-ml-2026__KJSHDBC03__JEWRKJ39__main.py
