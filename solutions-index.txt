@@ -129,3 +129,4 @@ tiet-uml501-ml-2026__UEOFA__DJFWQ02__main (1).py
 tiet-uml501-ml-2026__SDMELR21__YTQAI150__main.py
 tiet-uml501-ml-2026__SDMELR15__YTQAI122__model.py
 tiet-uml501-ml-2026__SDMELR21__YTQAI152__model 2.py
+tiet-uml501-ml-2026__SDMELR18__YTQAI141__main.py
