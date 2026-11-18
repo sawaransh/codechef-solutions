@@ -1,6 +1,8 @@
 import numpy as np
+
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -8,14 +10,13 @@ from sklearn.metrics import (
     f1_score,
     confusion_matrix
 )
-from sklearn.naive_bayes import GaussianNB
 
 
 class IrisGaussianNaiveBayes:
-    """Gaussian Naive Bayes (manual and scikit-learn)."""
+    """Implement Gaussian Naive Bayes manually and using GaussianNB."""
 
     def __init__(self):
-        """Load the Iris dataset and set up state."""
+        # Load the Iris dataset using load_iris()
         self.iris = load_iris()
 
         self.X = None
@@ -30,11 +31,12 @@ class IrisGaussianNaiveBayes:
         self.class_priors = {}
         self.class_means = {}
         self.class_variances = {}
+        self.var_smoothing = 1e-9
 
         self.builtin_model = None
 
     def prepare_data(self):
-        """Extract features, target, classes, and train-test split."""
+        """Prepare features, labels, classes, and train-test data."""
         self.X = self.iris.data
         self.y = self.iris.target
         self.classes = np.unique(self.y)
@@ -48,7 +50,7 @@ class IrisGaussianNaiveBayes:
         )
 
     def fit_manual(self):
-        """Train Gaussian Naive Bayes statistics manually."""
+        """Learn Gaussian Naive Bayes statistics manually."""
         if self.X_train is None or self.y_train is None:
             self.prepare_data()
 
@@ -56,66 +58,52 @@ class IrisGaussianNaiveBayes:
         self.class_means = {}
         self.class_variances = {}
 
-        n_samples = self.X_train.shape[0]
-        epsilon = 1e-9
+        n_samples = len(self.y_train)
+        epsilon = self.var_smoothing * np.var(self.X_train, axis=0).max()
+        if epsilon == 0:
+            epsilon = self.var_smoothing
 
-        for cls in np.unique(self.y_train):
-            cls_key = int(cls)
-            X_cls = self.X_train[self.y_train == cls]
+        for c in self.classes:
+            X_c = self.X_train[self.y_train == c]
+            self.class_priors[c] = float(len(X_c) / n_samples)
+            self.class_means[c] = np.mean(X_c, axis=0)
+            self.class_variances[c] = np.var(X_c, axis=0) + epsilon
 
-            self.class_priors[cls_key] = float(X_cls.shape[0] / n_samples)
-            self.class_means[cls_key] = np.mean(X_cls, axis=0)
-            self.class_variances[cls_key] = np.var(X_cls, axis=0) + epsilon
-
-    def calculate_log_posterior(self, sample, target_class):
-        """Calculate the log posterior score for one class."""
-        if not self.class_priors:
-            self.fit_manual()
-
+    def calculate_log_posterior(self, sample, class_label):
+        """Calculate the log-posterior score for one class."""
         sample = np.asarray(sample, dtype=float)
-        cls_key = int(target_class)
-
-        prior = self.class_priors[cls_key]
-        mean = self.class_means[cls_key]
-        var = self.class_variances[cls_key]
+        prior = self.class_priors[class_label]
+        mean = self.class_means[class_label]
+        var = self.class_variances[class_label]
 
         log_prior = np.log(prior)
         log_likelihood = -0.5 * np.sum(
             np.log(2.0 * np.pi * var) + ((sample - mean) ** 2) / var
         )
-
         return float(log_prior + log_likelihood)
 
     def predict_manual(self, X):
         """Generate predictions using the manual classifier."""
-        if not self.class_priors:
-            self.fit_manual()
-
         X = np.asarray(X, dtype=float)
-        if X.ndim == 1:
-            X = X.reshape(1, -1)
-
-        classes = list(self.class_priors.keys())
         predictions = []
 
         for sample in X:
-            scores = [self.calculate_log_posterior(sample, cls) for cls in classes]
-            best_class = classes[int(np.argmax(scores))]
+            posteriors = {
+                c: self.calculate_log_posterior(sample, c)
+                for c in self.classes
+            }
+            best_class = max(posteriors, key=posteriors.get)
             predictions.append(best_class)
 
         return np.array(predictions)
 
     def train_builtin(self):
-        """Train the built-in GaussianNB classifier."""
+        """Train the scikit-learn GaussianNB classifier."""
         if self.X_train is None or self.y_train is None:
             self.prepare_data()
 
-        self.builtin_model = GaussianNB()
+        self.builtin_model = GaussianNB(var_smoothing=self.var_smoothing)
         self.builtin_model.fit(self.X_train, self.y_train)
-
-    def fit_builtin(self):
-        """Alias for train_builtin."""
-        self.train_builtin()
 
     def predict_builtin(self, X):
         """Generate predictions using GaussianNB."""
@@ -125,39 +113,36 @@ class IrisGaussianNaiveBayes:
         return self.builtin_model.predict(X)
 
     def evaluate_models(self):
-        """Evaluate both implementations on the test data."""
-        if self.X_test is None or self.y_test is None:
-            self.prepare_data()
+        """Evaluate both classifiers on the same test set."""
         if not self.class_priors:
             self.fit_manual()
         if self.builtin_model is None:
             self.train_builtin()
 
-        manual_preds = self.predict_manual(self.X_test)
-        builtin_preds = self.predict_builtin(self.X_test)
+        y_pred_manual = self.predict_manual(self.X_test)
+        y_pred_builtin = self.predict_builtin(self.X_test)
+
+        def _compute_metrics(y_true, y_pred):
+            return {
+                "accuracy": float(accuracy_score(y_true, y_pred)),
+                "precision": precision_score(y_true, y_pred, average=None, zero_division=0),
+                "recall": recall_score(y_true, y_pred, average=None, zero_division=0),
+                "f1_score": f1_score(y_true, y_pred, average=None, zero_division=0),
+                "confusion_matrix": confusion_matrix(y_true, y_pred)
+            }
 
         return {
-            "Manual Gaussian Naive Bayes": {
-                "accuracy": float(accuracy_score(self.y_test, manual_preds)),
-                "precision": precision_score(self.y_test, manual_preds, average=None, zero_division=0),
-                "recall": recall_score(self.y_test, manual_preds, average=None, zero_division=0),
-                "f1_score": f1_score(self.y_test, manual_preds, average=None, zero_division=0),
-                "confusion_matrix": confusion_matrix(self.y_test, manual_preds)
-            },
-            "Inbuilt Gaussian Naive Bayes": {
-                "accuracy": float(accuracy_score(self.y_test, builtin_preds)),
-                "precision": precision_score(self.y_test, builtin_preds, average=None, zero_division=0),
-                "recall": recall_score(self.y_test, builtin_preds, average=None, zero_division=0),
-                "f1_score": f1_score(self.y_test, builtin_preds, average=None, zero_division=0),
-                "confusion_matrix": confusion_matrix(self.y_test, builtin_preds)
-            }
+            "Manual Gaussian Naive Bayes": _compute_metrics(self.y_test, y_pred_manual),
+            "Inbuilt Gaussian Naive Bayes": _compute_metrics(self.y_test, y_pred_builtin)
         }
 
 
 if __name__ == "__main__":
     model = IrisGaussianNaiveBayes()
+
     model.prepare_data()
     model.fit_manual()
     model.train_builtin()
-    results = model.evaluate_models()
-    print(results)
+
+    print("Model Evaluation:")
+    print(model.evaluate_models())
