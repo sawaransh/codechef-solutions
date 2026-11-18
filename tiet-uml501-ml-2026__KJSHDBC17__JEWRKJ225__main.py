@@ -17,13 +17,19 @@ class DecisionTreePruningEvaluator:
     def load_dataset(self):
 
         # Load the CSV file
-        pass
+        self.dataset = pd.read_csv("loan_tree_pruning.csv")
+        return self.dataset
 
     def prepare_data(self):
 
         # Return the training
         # and testing datasets
-        pass
+        if self.dataset is None:
+            self.load_dataset()
+
+        X = self.dataset[["Age", "AnnualIncome", "CreditScore", "LoanAmount"]]
+        y = self.dataset["Approved"]
+        return train_test_split(X, y, test_size=0.2, random_state=42)
 
     def evaluate_without_pruning(
         self,
@@ -36,7 +42,12 @@ class DecisionTreePruningEvaluator:
         # Return the accuracy
         # and node count for
         # the unpruned tree
-        pass
+        model = DecisionTreeClassifier(random_state=42)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        accuracy = float(accuracy_score(y_test, y_pred))
+        node_count = int(model.tree_.node_count)
+        return accuracy, node_count
 
     def evaluate_with_pruning(
         self,
@@ -49,7 +60,12 @@ class DecisionTreePruningEvaluator:
         # Return the accuracy
         # and node count for
         # the pruned tree
-        pass
+        model = DecisionTreeClassifier(ccp_alpha=0.02, random_state=42)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        accuracy = float(accuracy_score(y_test, y_pred))
+        node_count = int(model.tree_.node_count)
+        return accuracy, node_count
 
 
 if __name__ == "__main__":
