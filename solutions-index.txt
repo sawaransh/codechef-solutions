@@ -165,3 +165,5 @@ tiet-uml501-ml-2026__UEOFA__DJFWQ01__main.py
 tiet-uml501-ml-2026__UEOFA__DJFWQ02__main (1).py
 tiet-uml501-ml-2026__UEOFA__DJFWQ03__main.py
 tiet-uml501-ml-2026__UORIEE__POWERUR03__main 2.py
+tiet-uml501-ml-2026__TPRMLPR02__ERUIOQ__main.py
+tiet-uml501-ml-2026__TPRMLPR04A__HLDPROB135__main.py.zip
