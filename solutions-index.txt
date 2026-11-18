@@ -145,3 +145,7 @@ tiet-uml501-ml-2026__KJSHDBC02__JEWRKJ30__main.py
 tiet-uml501-ml-2026__KJSHDBC03__JEWRKJ34__main.py
 tiet-uml501-ml-2026__KJSHDBC03__JEWRKJ38__main.py
 tiet-uml501-ml-2026__KJSHDBC03__JEWRKJ39__main.py
+tiet-uml501-ml-2026__TPRMLPR04A__HLDPROB125__main 2.py
+tiet-uml501-ml-2026__TPRMLPR04A__HLDPROB133__main 2.py
+tiet-uml501-ml-2026__TPRMLPR04A__HLDPROB135__main 2.py
+tiet-uml501-ml-2026__TPRMLPR04A__RVRDALAB22__main 2.py
