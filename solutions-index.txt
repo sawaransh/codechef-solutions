@@ -152,3 +152,6 @@ tiet-uml501-ml-2026__TPRMLPR04A__RVRDALAB22__main 2.py
 tiet-uml501-ml-2026__TPRMLPR01__HLDPROB130__main.py
 tiet-uml501-ml-2026__TPRMLPR01__HLDPROB137__main.py
 tiet-uml501-ml-2026__SDMELR18__YTQAI141__main 2.py
+tiet-uml501-ml-2026__OIUPJE__POWERUR01__main.py
+tiet-uml501-ml-2026__OIUPJE__POWERUR02__main.py
+tiet-uml501-ml-2026__TPRMLPR04A__HLDPROB135__main.py.zip
