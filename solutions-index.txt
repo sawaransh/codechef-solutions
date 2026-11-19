@@ -206,3 +206,6 @@ tiet-uml501-ml-2026__JLPO__TK11__main.py
 tiet-uml501-ml-2026__JLPO__TK12__main.py
 tiet-uml501-ml-2026__SDMELR05__YTQAI46__main 2.py
 tiet-uml501-ml-2026__SDMELR14__YTQAI109__main 2.py
+tiet-uml501-ml-2026__SDMELR07__YTQAI55__main.py
+tiet-uml501-ml-2026__SDMELR07__YTQAI56__main.py
+tiet-uml501-ml-2026__TPRMLPR02__ERUIOQ__main 2.py
