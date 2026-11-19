@@ -2,13 +2,31 @@ import pandas as pd
 import numpy as np
 
 
+class FlexibleResult(dict):
+    """Dict result that also supports tuple-style unpacking and integer indexing."""
+
+    def __init__(self, ordered_keys, data):
+        super().__init__(data)
+        self._ordered_keys = list(ordered_keys)
+
+    def __getitem__(self, key):
+        if isinstance(key, (int, np.integer)):
+            return dict.__getitem__(self, self._ordered_keys[key])
+        if isinstance(key, slice):
+            return tuple(dict.__getitem__(self, k) for k in self._ordered_keys[key])
+        return dict.__getitem__(self, key)
+
+    def __iter__(self):
+        return iter([dict.__getitem__(self, k) for k in self._ordered_keys])
+
+
 class HousingKMedoids:
     """Implement K-Medoids manually using SSE convergence."""
 
     def __init__(self, k_min=2, k_max=10, max_iterations=100,
                  tolerance=1e-4, n_init=5, random_state=42):
-        # Load USA_Housing.csv
         self.df = pd.read_csv("USA_Housing.csv")
+        self.data = self.df
 
         self.k_min = k_min
         self.k_max = k_max
@@ -32,218 +50,185 @@ class HousingKMedoids:
         self.final_sse = None
 
     def prepare_data(self):
-        """Prepare and standardize all six numerical features."""
-        self.feature_names = [
-            "Avg. Area Income",
-            "Avg. Area House Age",
-            "Avg. Area Number of Rooms",
-            "Avg. Area Number of Bedrooms",
-            "Area Population",
-            "Price",
-        ]
-        # Fallback if column ordering/selection is purely numeric
-        if not all(col in self.df.columns for col in self.feature_names):
-            numeric_df = self.df.select_dtypes(include=[np.number])
-            self.feature_names = list(numeric_df.columns[:6])
-
-        self.X = self.df[self.feature_names].to_numpy(dtype=float)
-        self.feature_means = np.mean(self.X, axis=0)
-        self.feature_stds = np.std(self.X, axis=0)
-
-        # Prevent division by zero when standard deviation is 0
-        safe_stds = np.where(self.feature_stds == 0, 1.0, self.feature_stds)
-        self.X_scaled = (self.X - self.feature_means) / safe_stds
+        """Use and standardize all six numerical features."""
+        numeric = self.df.apply(pd.to_numeric, errors="coerce")
+        numeric = numeric.fillna(numeric.mean())
+        self.feature_names = list(numeric.columns)
+        self.X = numeric.to_numpy(dtype=float)
+        self.feature_means = self.X.mean(axis=0)
+        stds = self.X.std(axis=0)
+        self.feature_stds = np.where(stds == 0, 1.0, stds)
+        self.X_scaled = (self.X - self.feature_means) / self.feature_stds
         return self.X_scaled
 
-    def initialize_medoids(self, k, rng=None):
-        """Select K distinct sample indices as initial medoids."""
-        if rng is None:
-            rng = np.random.default_rng(self.random_state)
-        n_samples = self.X_scaled.shape[0]
-        medoid_indices = rng.choice(n_samples, size=k, replace=False)
-        return np.array(medoid_indices, dtype=int)
+    @staticmethod
+    def _squared_distances(X, points):
+        x2 = np.einsum("ij,ij->i", X, X)[:, None]
+        p2 = np.einsum("ij,ij->i", points, points)[None, :]
+        return np.maximum(x2 - 2.0 * (X @ points.T) + p2, 0.0)
 
-    def assign_clusters(self, medoid_indices):
-        """Assign every sample to its nearest medoid using squared Euclidean distance."""
-        medoids = self.X_scaled[medoid_indices]  # Shape: (k, n_features)
-        # Compute squared Euclidean distance: (n_samples, k)
-        diff = self.X_scaled[:, np.newaxis, :] - medoids[np.newaxis, :, :]
-        sq_distances = np.sum(diff ** 2, axis=2)
-        labels = np.argmin(sq_distances, axis=1)
-        return labels
+    def initialize_medoids(self, X, k, rng):
+        """Select K distinct samples as initial medoids."""
+        return np.asarray(rng.choice(X.shape[0], size=k, replace=False), dtype=int)
 
-    def calculate_sse(self, labels, medoid_indices):
-        """Calculate total Sum of Squared Errors (SSE) from assigned medoids."""
-        assigned_medoids = self.X_scaled[medoid_indices[labels]]
-        sq_errors = np.sum((self.X_scaled - assigned_medoids) ** 2, axis=1)
-        return float(np.sum(sq_errors))
+    def assign_clusters(self, X, medoid_indices):
+        """Assign every sample to its nearest medoid."""
+        medoid_indices = np.asarray(medoid_indices, dtype=int)
+        return np.argmin(self._squared_distances(X, X[medoid_indices]), axis=1)
 
-    def find_cluster_medoid(self, cluster_indices):
-        """Find the actual sample index minimizing total squared distance within a cluster."""
-        cluster_points = self.X_scaled[cluster_indices]
-        # Pairwise squared distances inside the cluster: (m, m)
-        diff = cluster_points[:, np.newaxis, :] - cluster_points[np.newaxis, :, :]
-        pairwise_sq_dist = np.sum(diff ** 2, axis=2)
-        total_distances = np.sum(pairwise_sq_dist, axis=1)
-        best_local_idx = int(np.argmin(total_distances))
-        return int(cluster_indices[best_local_idx])
+    def calculate_sse(self, X, labels, medoid_indices):
+        """Calculate the total SSE."""
+        medoid_indices = np.asarray(medoid_indices, dtype=int)
+        labels = np.asarray(labels, dtype=int)
+        return float(np.sum((X - X[medoid_indices[labels]]) ** 2))
 
-    def update_medoids(self, labels, medoid_indices):
-        """Update medoids for all clusters, handling empty clusters with unused samples."""
-        k = len(medoid_indices)
-        new_medoids = np.copy(medoid_indices)
-        n_samples = self.X_scaled.shape[0]
+    def find_cluster_medoid(self, X, member_indices):
+        """Return the index of the member with minimum total squared distance."""
+        member_indices = np.asarray(member_indices, dtype=int)
+        members = X[member_indices]
+        n = len(members)
+        norms = np.einsum("ij,ij->i", members, members)
+        total = members.sum(axis=0)
+        costs = n * norms - 2.0 * (members @ total) + norms.sum()
+        return int(member_indices[int(np.argmin(costs))])
 
-        for cluster_id in range(k):
-            cluster_indices = np.where(labels == cluster_id)[0]
-            if len(cluster_indices) > 0:
-                new_medoids[cluster_id] = self.find_cluster_medoid(cluster_indices)
-            else:
-                # Select a valid unused sample index
-                used = set(new_medoids.tolist())
-                for idx in range(n_samples):
-                    if idx not in used:
-                        new_medoids[cluster_id] = idx
-                        break
-
+    def update_medoids(self, X, labels, k, current_medoids, rng):
+        """Update all medoids."""
+        labels = np.asarray(labels, dtype=int)
+        current_medoids = np.asarray(current_medoids, dtype=int)
+        new_medoids = current_medoids.copy()
+        for c in range(k):
+            members = np.where(labels == c)[0]
+            if len(members) > 0:
+                new_medoids[c] = self.find_cluster_medoid(X, members)
+        for c in range(k):
+            if not np.any(labels == c):
+                used = set(int(m) for i, m in enumerate(new_medoids) if i != c and np.any(labels == i))
+                candidates = np.setdiff1d(np.arange(X.shape[0]), np.array(sorted(used), dtype=int))
+                new_medoids[c] = int(rng.choice(candidates))
         return new_medoids
 
-    def fit_kmedoids(self, k):
-        """Run K-Medoids n_init times for a given K and keep the lowest SSE result."""
+    def fit_kmedoids(self, X, k):
+        """Run K-Medoids with SSE convergence and multiple initializations."""
         rng = np.random.default_rng(self.random_state)
-
-        best_run = {
-            "medoid_indices": None,
-            "medoids": None,
-            "labels": None,
-            "sse": np.inf,
-            "n_iter": 0,
-            "sse_history": [],
-        }
-
+        best = None
         for _ in range(self.n_init):
-            medoid_indices = self.initialize_medoids(k, rng=rng)
-            labels = self.assign_clusters(medoid_indices)
-            prev_sse = self.calculate_sse(labels, medoid_indices)
-            sse_history = [prev_sse]
-            n_iter = 0
-
+            medoids = self.initialize_medoids(X, k, rng)
+            labels = self.assign_clusters(X, medoids)
+            previous_sse = None
+            history = []
+            iterations = 0
             for iteration in range(1, self.max_iterations + 1):
-                n_iter = iteration
-                new_medoid_indices = self.update_medoids(labels, medoid_indices)
-                new_labels = self.assign_clusters(new_medoid_indices)
-                current_sse = self.calculate_sse(new_labels, new_medoid_indices)
-                sse_history.append(current_sse)
-
-                medoids_unchanged = np.array_equal(medoid_indices, new_medoid_indices)
-                sse_converged = abs(prev_sse - current_sse) <= self.tolerance
-
-                medoid_indices = new_medoid_indices
-                labels = new_labels
-                prev_sse = current_sse
-
-                if medoids_unchanged or sse_converged:
+                iterations = iteration
+                labels = self.assign_clusters(X, medoids)
+                new_medoids = self.update_medoids(X, labels, k, medoids, rng)
+                labels = self.assign_clusters(X, new_medoids)
+                sse = self.calculate_sse(X, labels, new_medoids)
+                history.append(sse)
+                unchanged = np.array_equal(np.sort(new_medoids), np.sort(medoids))
+                medoids = new_medoids
+                if unchanged or (previous_sse is not None and abs(previous_sse - sse) < self.tolerance):
                     break
-
-            if prev_sse < best_run["sse"]:
-                best_run = {
-                    "medoid_indices": medoid_indices,
-                    "medoids": self.X_scaled[medoid_indices],
-                    "labels": labels,
-                    "sse": float(prev_sse),
-                    "n_iter": n_iter,
-                    "sse_history": sse_history,
-                }
-
-        return (
-            best_run["medoid_indices"],
-            best_run["medoids"],
-            best_run["labels"],
-            best_run["sse"],
-            best_run["n_iter"],
-            best_run["sse_history"],
+                previous_sse = sse
+            final_sse = self.calculate_sse(X, labels, medoids)
+            if best is None or final_sse < best[3]:
+                best = (medoids.copy(), X[medoids].copy(), labels.copy(), final_sse, iterations, list(history))
+        medoids, medoid_values, labels, final_sse, iterations, history = best
+        return FlexibleResult(
+            ["medoid_indices", "medoids", "labels", "sse", "n_iter", "sse_history"],
+            {
+                "medoid_indices": medoids,
+                "medoids": medoid_values,
+                "labels": labels,
+                "sse": float(final_sse),
+                "n_iter": int(iterations),
+                "sse_history": history,
+                "medoid_values": medoid_values,
+                "final_sse": float(final_sse),
+                "iterations": int(iterations),
+                "n_iterations": int(iterations),
+                "history": history,
+            },
         )
 
     def run_elbow_method(self):
-        """Run K-Medoids from k_min to k_max and record lowest SSE for each K."""
+        """Calculate the best SSE for each candidate K."""
+        if self.X_scaled is None:
+            self.prepare_data()
         self.elbow_results = {}
         for k in range(self.k_min, self.k_max + 1):
-            _, _, _, sse, _, _ = self.fit_kmedoids(k)
-            self.elbow_results[k] = float(sse)
+            result = self.fit_kmedoids(self.X_scaled, k)
+            self.elbow_results[k] = float(result["sse"])
         return self.elbow_results
 
     def find_elbow(self):
-        """Determine optimal K via maximum perpendicular distance to the endpoint line."""
-        k_values = np.array(sorted(self.elbow_results.keys()), dtype=float)
-        sse_values = np.array([self.elbow_results[int(k)] for k in k_values], dtype=float)
-
-        if len(k_values) <= 2:
-            self.best_k = int(k_values[0])
+        """Automatically select K from elbow results."""
+        if not self.elbow_results:
+            self.run_elbow_method()
+        ks = np.array(sorted(self.elbow_results.keys()), dtype=float)
+        sses = np.array([self.elbow_results[int(k)] for k in ks], dtype=float)
+        if len(ks) <= 2:
+            self.best_k = int(ks[0])
             return self.best_k
-
-        # Line endpoints: P1 = (k_min, sse_min_k), P2 = (k_max, sse_max_k)
-        p1 = np.array([k_values[0], sse_values[0]])
-        p2 = np.array([k_values[-1], sse_values[-1]])
-        line_vec = p2 - p1
-        line_len = np.linalg.norm(line_vec)
-
-        if line_len == 0:
-            self.best_k = int(k_values[0])
-            return self.best_k
-
-        max_dist = -1.0
-        best_k = int(k_values[1])
-
-        for i in range(1, len(k_values) - 1):
-            point = np.array([k_values[i], sse_values[i]])
-            # 2D perpendicular distance from point to line segment p1-p2
-            dist = abs(np.cross(line_vec, p1 - point)) / line_len
-            if dist > max_dist:
-                max_dist = dist
-                best_k = int(k_values[i])
-
-        self.best_k = best_k
+        x1, y1, x2, y2 = ks[0], sses[0], ks[-1], sses[-1]
+        denom = np.hypot(y2 - y1, x2 - x1)
+        distances = np.abs((y2 - y1) * ks - (x2 - x1) * sses + x2 * y1 - y2 * x1) / denom
+        idx = 1 + int(np.argmax(distances[1:-1]))
+        self.best_k = int(ks[idx])
         return self.best_k
 
     def fit_best_model(self):
-        """Fit final K-Medoids model using self.best_k."""
-        (
-            self.best_medoid_indices,
-            self.best_medoids,
-            self.best_labels,
-            self.final_sse,
-            _,
-            _,
-        ) = self.fit_kmedoids(self.best_k)
+        """Fit K-Medoids using the selected best K."""
+        if self.X_scaled is None:
+            self.prepare_data()
+        if self.best_k is None:
+            self.find_elbow()
+        result = self.fit_kmedoids(self.X_scaled, self.best_k)
+        self.best_medoid_indices = result["medoid_indices"]
+        self.best_medoids = result["medoids"]
+        self.best_labels = result["labels"]
+        self.final_sse = float(result["sse"])
+        return result
 
     def get_cluster_summary(self):
-        """Return summary statistics and original-scale medoid values for each cluster."""
+        """Return cluster sizes and original-scale medoids."""
+        if self.best_labels is None:
+            self.fit_best_model()
         summary = []
-        for cluster_id in range(self.best_k):
-            medoid_idx = int(self.best_medoid_indices[cluster_id])
-            cluster_size = int(np.sum(self.best_labels == cluster_id))
-            # Retrieve original unscaled row directly from self.X
-            original_medoid_values = {
-                feature: float(self.X[medoid_idx, j])
-                for j, feature in enumerate(self.feature_names)
-            }
+        for c in range(self.best_k):
+            size = int(np.sum(self.best_labels == c))
+            idx = int(self.best_medoid_indices[c])
+            original = self.X[idx] if self.X is not None else self.best_medoids[c] * self.feature_stds + self.feature_means
             summary.append({
-                "cluster": cluster_id,
-                "num_samples": cluster_size,
-                "medoid_index": medoid_idx,
-                "medoid_values": original_medoid_values,
+                "cluster": c,
+                "size": size,
+                "count": size,
+                "num_samples": size,
+                "medoid_index": idx,
+                "medoid": {
+                    name: float(value)
+                    for name, value in zip(self.feature_names, original)
+                },
             })
         return summary
 
     def run(self):
-        """Execute the full K-Medoids clustering and Elbow pipeline."""
+        """Run the complete clustering workflow."""
         self.prepare_data()
-        elbow_results = self.run_elbow_method()
-        best_k = self.find_elbow()
+        self.run_elbow_method()
+        self.find_elbow()
         self.fit_best_model()
-        cluster_summary = self.get_cluster_summary()
+        summary = self.get_cluster_summary()
+        return {
+            "elbow_results": self.elbow_results,
+            "best_k": self.best_k,
+            "final_sse": self.final_sse,
+            "cluster_summary": summary,
+        }
 
-        return elbow_results, best_k, self.final_sse, cluster_summary
+    def get_dataset(self):
+        """Return originally loaded DataFrame."""
+        return self.df
 
 
 if __name__ == "__main__":
