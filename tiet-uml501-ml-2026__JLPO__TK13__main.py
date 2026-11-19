@@ -4,20 +4,19 @@ import numpy as np
 
 def process_grayscale(img_array):
     # Save grayscale image array
-    np.savetxt('grey_output.txt', img_array, fmt='%d')
+    np.savetxt("grey_output.txt", img_array, fmt="%d")
 
 def process_rgb(img_array):
-    # Save RGB or RGBA image array by flattening spatial dimensions: (H, W, C) -> (H * W, C)
-    h, w, c = img_array.shape
-    flattened_arr = img_array.reshape(h * w, c)
-    np.savetxt('rgb_output.txt', flattened_arr, fmt='%d')
+    # Save RGB image array (flatten last dimension for saving)
+    reshaped = img_array.reshape(-1, img_array.shape[-1])
+    np.savetxt("rgb_output.txt", reshaped, fmt="%d")
 
 def img_to_array(path):
     # Read image
     img = Image.open(path)
     arr = np.array(img)
     
-    # Check dimensions and handle appropriately
+    # Check dimensions
     if arr.ndim == 2:
         process_grayscale(arr)
     elif arr.ndim == 3:

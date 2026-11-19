@@ -192,3 +192,17 @@ tiet-uml501-ml-2026__THPROJUNS__JEKJJWER01__main.py
 tiet-uml501-ml-2026__WQ1ERW__SDLKJE01__main.py
 tiet-uml501-ml-2026__WQ1ERW__SDLKJE02__main.py
 tiet-uml501-ml-2026__WQ1ERW__SDLKJE03__main.py
+tiet-uml501-ml-2026__JLPO__TK02__main.py
+tiet-uml501-ml-2026__JLPO__TK03__main.py
+tiet-uml501-ml-2026__JLPO__TK04__main.py
+tiet-uml501-ml-2026__JLPO__TK05__main.py
+tiet-uml501-ml-2026__JLPO__TK06__main.py
+tiet-uml501-ml-2026__JLPO__TK07__main.py
+tiet-uml501-ml-2026__JLPO__TK08__main.py
+tiet-uml501-ml-2026__JLPO__TK09__main.py
+tiet-uml501-ml-2026__JLPO__TK10__main.py
+tiet-uml501-ml-2026__JLPO__TK10__tiet-uml501-ml-2026__JLPO__TK10__main.py
+tiet-uml501-ml-2026__JLPO__TK11__main.py
+tiet-uml501-ml-2026__JLPO__TK12__main.py
+tiet-uml501-ml-2026__SDMELR05__YTQAI46__main 2.py
+tiet-uml501-ml-2026__SDMELR14__YTQAI109__main 2.py
